@@ -214,6 +214,12 @@ pub enum Action {
     /// Decrease font size
     DecreaseFontSize,
 
+    /// Increase font size
+    IncreaseFontSizeBreakpoints,
+
+    /// Decrease font size
+    DecreaseFontSizeBreakpoints,
+
     /// Reset font size to the config value
     ResetFontSize,
 
@@ -313,6 +319,12 @@ impl Action {
             },
             Action::Quit => {
                 ctx.terminal_mut().exit();
+            },
+            Action::IncreaseFontSizeBreakpoints => {
+                ctx.terminal_mut().increase_font_size();
+            },
+            Action::DecreaseFontSizeBreakpoints => {
+                ctx.terminal_mut().decrease_font_size();
             },
             Action::IncreaseFontSize => {
                 ctx.terminal_mut().change_font_size(FONT_SIZE_STEP);

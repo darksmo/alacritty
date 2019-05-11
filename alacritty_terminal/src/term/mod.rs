@@ -709,6 +709,9 @@ pub struct Term {
     pub font_size: Size,
     original_font_size: Size,
 
+    /// Font breakpoints
+    font_breakpoints: Vec<Size>,
+
     /// Size
     size_info: SizeInfo,
 
@@ -876,6 +879,13 @@ impl Term {
             alt: false,
             font_size: config.font.size,
             original_font_size: config.font.size,
+            font_breakpoints: vec![
+                Size::new(13.0),
+                Size::new(19.5),
+                Size::new(22.5),
+                Size::new(25.5),
+                Size::new(32.0)
+            ],
             active_charset: Default::default(),
             cursor: Default::default(),
             cursor_save: Default::default(),
@@ -899,11 +909,64 @@ impl Term {
         }
     }
 
+    fn set_font_size_to_closest_breakpoint(&mut self) {
+        let current_font_size = self.font_size;
+
+        let deltas: Vec<_> = self.font_breakpoints.iter().map(|&size| (size.as_f32_pts() - current_font_size.as_f32_pts()).abs()).collect::<Vec<_>>();
+        let min_delta = deltas.iter().fold(deltas[0], |mut min, &val| {
+            if val < min {
+                    min = val;
+                }
+            min
+        });
+        let min_delta_idx = deltas.iter().position(|&r| r == min_delta).unwrap();
+
+        self.font_size = self.font_breakpoints[min_delta_idx];
+        self.dirty = true;
+    }
+
+    pub fn increase_font_size(&mut self) {
+        let current_font_size = self.font_size;
+        let max_index = self.font_breakpoints.len() - 1;
+
+        // find index of current font size
+        let index_opt = self.font_breakpoints.iter().position(|&r| r == current_font_size);
+        match index_opt {
+            Some(index) => {
+                if index < max_index {
+                    self.font_size = self.font_breakpoints[index + 1];
+                    self.dirty = true;
+                }
+            },
+            None => self.set_font_size_to_closest_breakpoint()
+        }
+    }
+
+    pub fn decrease_font_size(&mut self) {
+        let current_font_size = self.font_size;
+        let min_index = 0;
+
+        // find index of current font size
+        let index_opt = self.font_breakpoints.iter().position(|&r| r == current_font_size);
+        match index_opt {
+            Some(index_opt) => {
+                if index_opt > min_index {
+                    self.font_size = self.font_breakpoints[index_opt - 1];
+                    self.dirty = true;
+                }
+            },
+            None => self.set_font_size_to_closest_breakpoint()
+        }
+    }
+
     pub fn change_font_size(&mut self, delta: f32) {
         // Saturating addition with minimum font size FONT_SIZE_STEP
         let new_size = self.font_size + Size::new(delta);
         self.font_size = max(new_size, Size::new(FONT_SIZE_STEP));
         self.dirty = true;
+
+        // DEBUG
+        // print!("Font size: {}", self.font_size.as_f32_pts)
     }
 
     pub fn reset_font_size(&mut self) {
